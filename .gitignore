@@ -19,5 +19,8 @@ env/
 # OS
 .DS_Store
 
+# Notebook runtime vector stores
+RAG/chapter07-RAG/asset/runtime/
+
 # Claude
 .claude/

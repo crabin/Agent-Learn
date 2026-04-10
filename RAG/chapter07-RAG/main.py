@@ -22,8 +22,7 @@ def normalize_base_url(base_url: str | None) -> str | None:
 
 
 # 2.定义文档加载器
-loader = TextLoader(file_path='./asset/load/09-ai1.txt',encoding="utf-8")
-
+loader = TextLoader(file_path="./asset/load/09-ai1.txt", encoding="utf-8")
 # 3.加载文档
 documents = loader.load()
 
@@ -79,7 +78,7 @@ except BadRequestError as exc:
 retriever = db.as_retriever()
 
 # 进行数据的检索
-docs = retriever.invoke(input = "深度学习是什么？")
+docs = retriever.invoke(input="深度学习是什么？")
 
 print(len(docs))
 

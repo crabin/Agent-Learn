@@ -3,11 +3,13 @@ from pydantic import BaseModel
 from type import Tool
 from enum import Enum
 
+
 class Operation(str, Enum):
     ADD = "add"
     SUBTRACT = "subtract"
     MULTIPLY = "multiply"
     DIVIDE = "divide"
+
 
 class CalculatorParameters(BaseModel):
     num1: float
@@ -21,7 +23,7 @@ class Calculator(Tool):
     parameters = CalculatorParameters
 
     async def execute(self, params: CalculatorParameters) -> str:
-        
+
         match params.operation:
             case Operation.ADD:
                 result = params.num1 + params.num2
