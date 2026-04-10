@@ -21,6 +21,7 @@ env/
 
 # Notebook runtime vector stores
 RAG/chapter07-RAG/asset/runtime/
+RAG/chapter07-RAG/asset/**/chroma.sqlite3
 
 # Claude
 .claude/
