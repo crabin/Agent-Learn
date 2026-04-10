@@ -1,0 +1,12 @@
+[project]
+name = "agentlearn"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langchain>=1.0.0",
+    "langchain-community>=0.3.0",
+    "markdown>=3.8",
+    "unstructured>=0.16.0",
+]
