@@ -103,4 +103,10 @@ def print_grid_policy(agent):
                 row_str += f" {actions_map[best_action]}  "
         print(row_str)
 
+# --- 打印 Q 值表 ---
+print("\n[ Q 值矩阵 ]")
+print("形状: (行, 列, 动作数) =", agent.Q.shape)
+print("\nQ 值详情:")
+print(agent.Q)
+
 print_grid_policy(agent)
