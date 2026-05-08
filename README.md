@@ -1,6 +1,6 @@
 # AgentLearn
 
-AI Agent 学习项目，当前围绕 **ReAct**、**CodeAct** 与 **RAG** 三条主线组织示例代码和 Notebook，用来帮助理解 Agent 推理执行、代码即行动，以及检索增强生成的基础实践。
+AI Agent 学习项目，当前围绕 **ReAct**、**CodeAct**、**RAG** 与 **AgenticRL** 四条主线组织示例代码和 Notebook，用来帮助理解 Agent 推理执行、代码即行动、检索增强生成，以及基于 SFT/GRPO 的 Agentic RL 训练流程。
 
 ## 项目结构
 
@@ -9,6 +9,7 @@ AgentLearn/
 ├── main.py                  # 项目入口占位示例
 ├── pyproject.toml           # 项目依赖声明
 ├── CodeAct/                 # CodeAct (Code as Action) 实现
+├── AgenticRL/               # Agentic RL 数据集、奖励、训练封装与流水线
 ├── react/                   # ReAct (Reasoning + Acting) 实现
 └── RAG/
     └── chapter07-RAG/       # RAG 脚本与 Notebook 示例
@@ -49,6 +50,44 @@ AgentLearn/
 - 包含 6 个循序渐进的 Notebook 示例
 
 **核心流程：** 加载文档 → 切分文本 → 生成向量 → 构建索引 → 检索相关内容
+
+### AgenticRL
+
+基于 Datawhale HelloAgents 第十一章 Agentic-RL 的结构落地到本地 `AgenticRL/` 目录，提供从 GSM8K 数据格式化、奖励函数到 SFT/GRPO 训练封装的最小可用框架。
+
+- `AgenticRL/datasets.py`：`GSM8KDataset`、`format_math_dataset()`、`create_sft_dataset()`、`create_rl_dataset()`
+- `AgenticRL/rewards.py`：`AccuracyReward`、`LengthPenaltyReward`、`StepReward`、`CombinedReward`
+- `AgenticRL/trainers.py`：`SFTTrainerWrapper`、`GRPOTrainerWrapper`，训练依赖 Hugging Face Transformers、TRL 与 PEFT
+- `AgenticRL/tool.py`：统一入口 `RLTrainingTool`，支持 `load_dataset`、`create_reward`、`train`、`evaluate`
+- `AgenticRL/pipeline.py`：端到端训练流水线示例
+
+轻量验证不需要下载模型：
+
+```bash
+python -m AgenticRL.quick_test
+```
+
+真实训练需要额外安装 RL 依赖，并准备可用 GPU/模型下载环境：
+
+```bash
+uv sync --extra rl
+python -m AgenticRL.pipeline
+```
+
+也可以用统一工具做快速评估：
+
+```python
+import json
+from AgenticRL import RLTrainingTool
+
+rl_tool = RLTrainingTool()
+result = rl_tool.run({
+    "action": "evaluate",
+    "predictions": ["Step 1: 48 + 24 = 72\nFinal Answer: 72"],
+    "ground_truth": ["72"],
+})
+print(json.loads(result)["accuracy"])
+```
 
 ## 安装
 
@@ -148,6 +187,14 @@ python RAG/chapter07-RAG/main.py
 - `langchain-community`
 - `markdown`
 - `unstructured`
+- `openai`
+- `pandas`
+
+AgenticRL 真实训练所需的重型依赖放在可选 extra 中：
+
+```bash
+uv sync --extra rl
+```
 
 RAG 相关代码还会用到 `langchain-openai`、`langchain-text-splitters` 与向量库依赖；如果本地环境缺失，请一并安装。
 

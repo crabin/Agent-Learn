@@ -20,3 +20,14 @@ dependencies = [
     "pandas>=3.0.2",
     "unstructured>=0.16.0",
 ]
+
+[project.optional-dependencies]
+rl = [
+    "accelerate>=1.0.0",
+    "datasets>=3.0.0",
+    "peft>=0.14.0",
+    "tensorboard>=2.18.0",
+    "torch>=2.5.0",
+    "transformers>=4.46.0",
+    "trl>=0.13.0",
+]
