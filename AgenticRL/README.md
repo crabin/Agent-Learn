@@ -191,6 +191,7 @@ python -m AgenticRL.pipeline
 - 数据集是 `gsm8k`
 - SFT 输出目录是 `./models/sft_model`
 - GRPO 输出目录是 `./models/grpo_model`
+- 生产导出目录是 `./models/merged_model`
 
 ## 模型和数据下载位置
 
@@ -231,12 +232,61 @@ export HF_DATASETS_CACHE=/path/to/dataset_cache
 
 - `./models/sft_model`
 - `./models/grpo_model`
+- `./models/merged_model`（LoRA 合并后的生产模型）
 
 也就是相对于当前仓库：
 
 ```text
 /Users/lpb/workspace/myProjects/AgentLearn/models/sft_model
 /Users/lpb/workspace/myProjects/AgentLearn/models/grpo_model
+/Users/lpb/workspace/myProjects/AgentLearn/models/merged_model
+```
+
+## 导出生产模型
+
+如果配置中启用了：
+
+```json
+"export": {
+  "enabled": true,
+  "output_dir": "./models/merged_model"
+}
+```
+
+那么流水线在 GRPO 训练和评估完成后，会自动把 LoRA 权重合并回基础模型，并导出到 `./models/merged_model`，便于直接部署推理服务。
+
+## FastAPI 推理服务
+
+新增了一个最小可用的 FastAPI 服务文件：
+
+- [api.py](/Users/lpb/workspace/myProjects/AgentLearn/AgenticRL/api.py)
+
+默认读取导出的生产模型目录 `./models/merged_model`。
+
+安装依赖：
+
+```bash
+uv sync --extra rl
+```
+
+启动服务：
+
+```bash
+uv run uvicorn AgenticRL.api:app --host 0.0.0.0 --port 8000
+```
+
+健康检查：
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+生成回答：
+
+```bash
+curl -X POST http://127.0.0.1:8000/generate \
+  -H "Content-Type: application/json" \
+  -d '{"text":"What is 48 + 24?","max_tokens":128}'
 ```
 
 ## 示例

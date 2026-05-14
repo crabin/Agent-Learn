@@ -25,6 +25,10 @@
   "eval": {
     "max_samples": 50
   },
+  "export": {
+    "enabled": true,
+    "output_dir": "./models/merged_model"
+  },
   "monitoring": {
     "use_wandb": false,
     "use_tensorboard": true

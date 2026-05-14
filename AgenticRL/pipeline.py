@@ -122,7 +122,25 @@ class AgenticRLPipeline:
         self.log(f"GRPO准确率: {result['accuracy']}")
         return result
 
-    def stage6_save_results(self) -> None:
+    def stage6_export_model(self, model_path: str) -> dict[str, Any] | None:
+        export_config = self.config.get("export", {})
+        if not export_config.get("enabled", False):
+            return None
+
+        self.log("阶段6: 导出生产模型")
+        result = self._run_json(
+            {
+                "action": "export_model",
+                "base_model": self.config["model"]["base_model"],
+                "model_path": model_path,
+                "output_dir": export_config.get("output_dir", "./models/merged_model"),
+            }
+        )
+        self.results["model_export"] = result
+        self.log(f"生产模型已导出: {result['merged_model_path']}")
+        return result
+
+    def stage7_save_results(self) -> None:
         path = Path(self.config.get("results_path", "training_results.json"))
         with path.open("w", encoding="utf-8") as file:
             json.dump(self.results, file, ensure_ascii=False, indent=2)
@@ -134,7 +152,8 @@ class AgenticRLPipeline:
         self.stage3_sft_evaluation(sft_model_path)
         grpo_model_path = self.stage4_grpo_training(sft_model_path)
         self.stage5_grpo_evaluation(grpo_model_path)
-        self.stage6_save_results()
+        self.stage6_export_model(grpo_model_path)
+        self.stage7_save_results()
         self.log("训练流程完成")
         return self.results
 
@@ -161,6 +180,10 @@ def default_config() -> dict[str, Any]:
             "reward_type": "accuracy",
         },
         "eval": {"max_samples": 50},
+        "export": {
+            "enabled": True,
+            "output_dir": "./models/merged_model",
+        },
         "monitoring": {"use_wandb": False, "use_tensorboard": True},
         "results_path": "training_results.json",
     }

@@ -25,9 +25,11 @@ dependencies = [
 rl = [
     "accelerate>=1.0.0",
     "datasets>=3.0.0",
+    "fastapi>=0.115.0",
     "peft>=0.14.0",
     "tensorboard>=2.18.0",
     "torch>=2.5.0",
     "transformers>=4.46.0",
     "trl>=0.13.0",
+    "uvicorn>=0.30.0",
 ]

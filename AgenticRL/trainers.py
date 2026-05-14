@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 
@@ -119,6 +120,47 @@ class BaseTrainerWrapper:
         if self.config.use_tensorboard:
             targets.append("tensorboard")
         return targets
+
+
+def export_merged_model(
+    base_model_name: str,
+    lora_model_path: str,
+    output_dir: str,
+) -> dict[str, Any]:
+    deps = _require_training_deps()
+    AutoModelForCausalLM = deps["AutoModelForCausalLM"]
+    AutoTokenizer = deps["AutoTokenizer"]
+    torch = deps["torch"]
+
+    try:
+        from peft import PeftModel
+    except ImportError as exc:
+        raise ImportError(_missing_rl_deps_message()) from exc
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    base_model = AutoModelForCausalLM.from_pretrained(
+        base_model_name,
+        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+        device_map="auto" if torch.cuda.is_available() else None,
+        trust_remote_code=True,
+    )
+    model = PeftModel.from_pretrained(base_model, lora_model_path)
+    merged_model = model.merge_and_unload()
+    merged_model.save_pretrained(output_path)
+
+    tokenizer = AutoTokenizer.from_pretrained(base_model_name, trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.save_pretrained(output_path)
+
+    return {
+        "status": "success",
+        "base_model": base_model_name,
+        "lora_model_path": lora_model_path,
+        "merged_model_path": str(output_path),
+    }
 
 
 class SFTTrainerWrapper(BaseTrainerWrapper):

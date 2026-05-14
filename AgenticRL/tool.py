@@ -18,7 +18,12 @@ from .rewards import (
     count_reasoning_steps,
     extract_answer,
 )
-from .trainers import GRPOTrainerWrapper, SFTTrainerWrapper, TrainingConfig
+from .trainers import (
+    GRPOTrainerWrapper,
+    SFTTrainerWrapper,
+    TrainingConfig,
+    export_merged_model,
+)
 
 
 class RLTrainingTool:
@@ -49,9 +54,11 @@ class RLTrainingTool:
                 result = self._train(params)
             elif action == "evaluate":
                 result = self._evaluate(params)
+            elif action == "export_model":
+                result = self._export_model(params)
             else:
                 raise ValueError(
-                    "Unknown action. Use one of: load_dataset, create_reward, train, evaluate."
+                    "Unknown action. Use one of: load_dataset, create_reward, train, evaluate, export_model."
                 )
             return json.dumps(result, ensure_ascii=False, indent=2)
         except Exception as exc:
@@ -175,6 +182,24 @@ class RLTrainingTool:
         if "predictions" in params:
             return self._evaluate_predictions(params)
         return self._evaluate_model(params)
+
+    def _export_model(self, params: dict[str, Any]) -> dict[str, Any]:
+        base_model = params.get("base_model") or params.get("model_name")
+        lora_model_path = params.get("model_path") or params.get("lora_model_path")
+        output_dir = params.get("output_dir")
+
+        if not base_model:
+            raise ValueError("`base_model` is required for model export.")
+        if not lora_model_path:
+            raise ValueError("`model_path` or `lora_model_path` is required for model export.")
+        if not output_dir:
+            raise ValueError("`output_dir` is required for model export.")
+
+        return export_merged_model(
+            base_model_name=base_model,
+            lora_model_path=lora_model_path,
+            output_dir=output_dir,
+        )
 
     def _evaluate_predictions(self, params: dict[str, Any]) -> dict[str, Any]:
         predictions = list(params["predictions"])

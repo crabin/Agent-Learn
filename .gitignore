@@ -26,3 +26,5 @@ RAG/chapter07-RAG/asset/**/chroma.sqlite3
 
 # Claude
 .claude/
+
+.omc/
