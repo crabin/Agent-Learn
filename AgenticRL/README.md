@@ -176,7 +176,7 @@ uv sync --extra rl
 如果你不用 `uv`，也可以自己安装这些包：
 
 ```bash
-pip install torch transformers datasets trl peft accelerate tensorboard
+pip install torch transformers datasets trl peft accelerate tensorboard optuna
 ```
 
 ### 3. 运行完整流水线
@@ -192,6 +192,187 @@ python -m AgenticRL.pipeline
 - SFT 输出目录是 `./models/sft_model`
 - GRPO 输出目录是 `./models/grpo_model`
 - 生产导出目录是 `./models/merged_model`
+
+## 参数优化
+
+现在 `AgenticRL.pipeline` 已支持在 `GRPO` 阶段做三种参数搜索：
+
+- `random`
+- `grid`
+- `bayesian`
+
+入口还是同一个命令：
+
+```bash
+python -m AgenticRL.pipeline
+```
+
+区别只在于 `config.json` 里的 `optimization` 配置是否开启。
+
+### 默认配置结构
+
+```json
+"optimization": {
+  "enabled": true,
+  "target": "grpo",
+  "method": "random",
+  "metric": "accuracy",
+  "maximize": true,
+  "max_trials": 4,
+  "random_seed": 42,
+  "search_space": {
+    "learning_rate": {
+      "type": "float",
+      "low": 5e-6,
+      "high": 5e-5,
+      "log": true
+    },
+    "batch_size": {
+      "type": "categorical",
+      "values": [1, 2, 4]
+    },
+    "num_generations": {
+      "type": "categorical",
+      "values": [2, 4, 8]
+    },
+    "kl_coef": {
+      "type": "float",
+      "low": 0.01,
+      "high": 0.1
+    },
+    "temperature": {
+      "type": "float",
+      "low": 0.6,
+      "high": 1.0
+    }
+  }
+}
+```
+
+说明：
+
+- `enabled=true` 时，会在阶段 4 把单次 `GRPO` 训练替换成参数搜索
+- `target` 目前只支持 `grpo`
+- `metric` 默认用 `accuracy` 选最优 trial
+- 每个 trial 会把模型输出到类似 `./models/grpo_model_trial_001`
+
+### 1. 随机搜索
+
+适合先快速摸参数范围。
+
+```json
+"optimization": {
+  "enabled": true,
+  "method": "random",
+  "metric": "accuracy",
+  "max_trials": 8,
+  "random_seed": 42,
+  "search_space": {
+    "learning_rate": {
+      "type": "float",
+      "low": 1e-6,
+      "high": 5e-5,
+      "log": true
+    },
+    "batch_size": {
+      "type": "categorical",
+      "values": [1, 2, 4]
+    },
+    "kl_coef": {
+      "type": "float",
+      "low": 0.01,
+      "high": 0.08
+    }
+  }
+}
+```
+
+### 2. 网格搜索
+
+适合参数组合不多、希望完整枚举时使用。
+
+```json
+"optimization": {
+  "enabled": true,
+  "method": "grid",
+  "metric": "accuracy",
+  "max_trials": 12,
+  "search_space": {
+    "learning_rate": [1e-5, 2e-5, 5e-5],
+    "batch_size": [1, 2],
+    "num_generations": [2, 4]
+  }
+}
+```
+
+说明：
+
+- `grid` 下每个参数可以直接写数组
+- 也可以写成 `{ "values": [...] }`
+- 如果组合总数超过 `max_trials`，会按生成顺序截断
+
+### 3. 贝叶斯优化
+
+适合 trial 成本更高、希望更高效逼近最优参数时使用。
+
+```json
+"optimization": {
+  "enabled": true,
+  "method": "bayesian",
+  "metric": "accuracy",
+  "max_trials": 10,
+  "random_seed": 42,
+  "search_space": {
+    "learning_rate": {
+      "type": "float",
+      "low": 1e-6,
+      "high": 5e-5,
+      "log": true
+    },
+    "kl_coef": {
+      "type": "float",
+      "low": 0.01,
+      "high": 0.1
+    },
+    "temperature": {
+      "type": "float",
+      "low": 0.6,
+      "high": 1.0
+    },
+    "num_generations": {
+      "type": "categorical",
+      "values": [2, 4, 6, 8]
+    }
+  }
+}
+```
+
+贝叶斯优化依赖 `optuna`。如果你是用：
+
+```bash
+uv sync --extra rl
+```
+
+现在会一起装上。
+
+### 搜索结果
+
+搜索完成后，流水线会：
+
+- 自动记录所有 trial 的参数和评估结果
+- 选出 `metric` 最优的 trial 作为最终 `GRPO` 模型
+- 继续执行后续评估、导出和结果保存
+
+最终结果会写入：
+
+```text
+training_results.json
+```
+
+其中会新增：
+
+- `optimization`
+- `grpo_optimization_evaluation`
 
 ## 模型和数据下载位置
 
