@@ -5,13 +5,30 @@
 展示工作记忆的混合检索策略和TTL机制
 """
 
+from pathlib import Path
+import sys
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import load_shared_dotenv
+
+load_shared_dotenv(code_root=CODE_ROOT)
+
 import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 from hello_agents.tools import MemoryTool
 from hello_agents.memory import MemoryItem
-from dotenv import load_dotenv
-load_dotenv()
 
 class WorkingMemoryDemo:
     """工作记忆演示类"""

@@ -58,20 +58,34 @@ def get_weather(city: str) -> str:
 
 
 
-import os
+from pathlib import Path
+import sys
+
 from tavily import TavilyClient
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_llm_config, get_system_env
 
 def get_attraction(city: str, weather: str) -> str:
     """
     根据城市和天气，使用Tavily Search API搜索并返回优化后的景点推荐。
     """
 
-    # 从环境变量或主程序配置中获取API密钥
-    api_key = os.environ.get("TAVILY_API_KEY") # 推荐方式
-    # 或者，我们可以在主循环中传入，如此处代码所示
-
-    if not api_key:
-        return "错误：未配置TAVILY_API_KEY。"
+    try:
+        api_key = get_system_env("TAVILY_API_KEY")
+    except ValueError:
+        return "错误：未配置 TAVILY_API_KEY 系统环境变量。"
 
     # 2. 初始化Tavily客户端
     tavily = TavilyClient(api_key=api_key)
@@ -141,16 +155,11 @@ class OpenAICompatibleClient:
 import re
 
 # --- 1. 配置LLM客户端 ---
-# 请根据您使用的服务，将这里替换成对应的凭证和地址
-API_KEY = "YOUR_API_KEY"
-BASE_URL = "YOUR_BASE_URL"
-MODEL_ID = "YOUR_MODEL_ID"
-os.environ['TAVILY_API_KEY'] = "YOUR_TAVILY_API_KEY"
-
+llm_config = get_llm_config(code_root=CODE_ROOT)
 llm = OpenAICompatibleClient(
-    model=MODEL_ID,
-    api_key=API_KEY,
-    base_url=BASE_URL
+    model=llm_config.model_id,
+    api_key=llm_config.api_key,
+    base_url=llm_config.base_url,
 )
 
 # --- 2. 初始化 ---

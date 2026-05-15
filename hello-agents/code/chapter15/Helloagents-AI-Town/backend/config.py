@@ -1,42 +1,63 @@
 """配置文件"""
 
-import os
+from pathlib import Path
+import sys
 from typing import Optional
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_env_value
+
 
 class Settings:
     """应用配置"""
-    
-    # API配置
+
     API_TITLE = "赛博小镇 API"
     API_VERSION = "1.0.0"
     API_HOST = "0.0.0.0"
     API_PORT = 8000
-    
-    # NPC配置
-    NPC_UPDATE_INTERVAL = 30  # NPC状态更新间隔(秒)
-    
-    # LLM配置 (从环境变量读取)
-    # HelloAgents框架使用自定义LLM配置,不需要OPENAI_API_KEY
-    LLM_MODEL_ID: str = os.getenv("LLM_MODEL_ID", "Qwen/Qwen2.5-72B-Instruct")
-    LLM_API_KEY: Optional[str] = os.getenv("LLM_API_KEY")
-    LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://api-inference.modelscope.cn/v1/")
 
-    # CORS配置
-    CORS_ORIGINS = ["*"]  # 生产环境应限制具体域名
+    NPC_UPDATE_INTERVAL = 30
+
+    LLM_MODEL_ID: str = (
+        get_env_value("MODEL_ID", default="Qwen/Qwen2.5-72B-Instruct", code_root=CODE_ROOT)
+        or "Qwen/Qwen2.5-72B-Instruct"
+    )
+    LLM_API_KEY: Optional[str] = get_env_value("API_KEY", default=None, code_root=CODE_ROOT)
+    LLM_BASE_URL: str = (
+        get_env_value(
+            "BASE_URL",
+            default="https://api-inference.modelscope.cn/v1/",
+            code_root=CODE_ROOT,
+        )
+        or "https://api-inference.modelscope.cn/v1/"
+    )
+
+    CORS_ORIGINS = ["*"]
 
     @classmethod
     def validate(cls):
         """验证配置"""
         if not cls.LLM_API_KEY:
-            print("⚠️  警告: 未设置LLM_API_KEY环境变量")
-            print("   请在.env文件中配置LLM_API_KEY")
-            print("   示例: LLM_API_KEY=\"your-api-key\"")
+            print("⚠️  警告: 未在共享 .env 中设置 API_KEY")
+            print("   请在 hello-agents/code/.env 中配置 API_KEY")
+            print('   示例: API_KEY="your-api-key"')
             return False
 
-        print(f"✅ LLM配置:")
+        print("✅ LLM配置:")
         print(f"   模型: {cls.LLM_MODEL_ID}")
         print(f"   服务地址: {cls.LLM_BASE_URL}")
         return True
 
-settings = Settings()
 
+settings = Settings()

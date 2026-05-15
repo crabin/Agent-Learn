@@ -3,14 +3,31 @@
 （2）实战案例：智能客服系统
 """
 
+from pathlib import Path
+import sys
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import load_shared_dotenv
+
+load_shared_dotenv(code_root=CODE_ROOT)
+
 from hello_agents import SimpleAgent, HelloAgentsLLM
 from hello_agents.tools import A2ATool
 from hello_agents.protocols import A2AServer
 import threading
 import time
-from dotenv import load_dotenv
 
-load_dotenv()
 llm = HelloAgentsLLM()
 
 # 1. 创建技术专家Agent服务

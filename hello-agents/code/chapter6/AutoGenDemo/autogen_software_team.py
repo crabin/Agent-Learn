@@ -2,13 +2,24 @@
 AutoGen 软件开发团队协作案例
 """
 
-import os
 import asyncio
-from typing import List, Dict, Any
-from dotenv import load_dotenv
+from pathlib import Path
+import sys
+from typing import Any, Dict, List
 
-# 加载环境变量
-load_dotenv()
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_llm_config
 
 # 先测试一个版本，使用 OpenAI 客户端
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -19,10 +30,11 @@ from autogen_agentchat.ui import Console
 
 def create_openai_model_client():
     """创建 OpenAI 模型客户端用于测试"""
+    llm_config = get_llm_config(code_root=CODE_ROOT)
     return OpenAIChatCompletionClient(
-        model=os.getenv("LLM_MODEL_ID", "gpt-4o"),
-        api_key=os.getenv("LLM_API_KEY"),
-        base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
+        model=llm_config.model_id,
+        api_key=llm_config.api_key,
+        base_url=llm_config.base_url,
     )
 
 def create_product_manager(model_client):

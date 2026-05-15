@@ -6,18 +6,30 @@
 """
 
 import asyncio
-from typing import TypedDict, Annotated
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from pathlib import Path
+import sys
+from typing import Annotated, TypedDict
+
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import InMemorySaver
-import os
-from dotenv import load_dotenv
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
 from tavily import TavilyClient
 
-# 加载环境变量
-load_dotenv()
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_llm_config, get_system_env
 
 # 定义状态结构
 class SearchState(TypedDict):
@@ -29,15 +41,16 @@ class SearchState(TypedDict):
     step: str             # 当前步骤
 
 # 初始化模型和Tavily客户端
+llm_config = get_llm_config(code_root=CODE_ROOT)
 llm = ChatOpenAI(
-    model=os.getenv("LLM_MODEL_ID", "gpt-4o-mini"),
-    api_key=os.getenv("LLM_API_KEY"),
-    base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1"),
-    temperature=0.7
+    model=llm_config.model_id,
+    api_key=llm_config.api_key,
+    base_url=llm_config.base_url,
+    temperature=0.7,
 )
 
 # 初始化Tavily客户端
-tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+tavily_client = TavilyClient(api_key=get_system_env("TAVILY_API_KEY"))
 
 def understand_query_node(state: SearchState) -> SearchState:
     """步骤1：理解用户查询并生成搜索关键词"""
@@ -196,11 +209,12 @@ def create_search_assistant():
 async def main():
     """主函数：运行智能搜索助手"""
     
-    # 检查API密钥
-    if not os.getenv("TAVILY_API_KEY"):
-        print("❌ 错误：请在.env文件中配置TAVILY_API_KEY")
+    try:
+        get_system_env("TAVILY_API_KEY")
+    except ValueError:
+        print("❌ 错误：请设置 TAVILY_API_KEY 系统环境变量")
         return
-    
+
     app = create_search_assistant()
     
     print("🔍 智能搜索助手启动！")

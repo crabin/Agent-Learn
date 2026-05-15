@@ -1,7 +1,23 @@
 # my_advanced_search.py
-import os
-from typing import Optional, List, Dict, Any
+from pathlib import Path
+import sys
+from typing import Any, Dict, List, Optional
+
 from hello_agents import ToolRegistry
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_env_value, get_system_env
 
 class MyAdvancedSearchTool:
     """
@@ -18,17 +34,21 @@ class MyAdvancedSearchTool:
     def _setup_search_sources(self):
         """设置可用的搜索源"""
         # 检查Tavily可用性
-        if os.getenv("TAVILY_API_KEY"):
-            try:
-                from tavily import TavilyClient
-                self.tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
-                self.search_sources.append("tavily")
-                print("✅ Tavily搜索源已启用")
-            except ImportError:
-                print("⚠️ Tavily库未安装")
+        try:
+            tavily_api_key = get_system_env("TAVILY_API_KEY")
+            from tavily import TavilyClient
+
+            self.tavily_client = TavilyClient(api_key=tavily_api_key)
+            self.search_sources.append("tavily")
+            print("✅ Tavily搜索源已启用")
+        except ValueError:
+            pass
+        except ImportError:
+            print("⚠️ Tavily库未安装")
 
         # 检查SerpApi可用性
-        if os.getenv("SERPAPI_API_KEY"):
+        serpapi_api_key = get_env_value("SERPAPI_API_KEY", code_root=CODE_ROOT)
+        if serpapi_api_key:
             try:
                 import serpapi
                 self.search_sources.append("serpapi")
@@ -99,9 +119,10 @@ class MyAdvancedSearchTool:
         """使用SerpApi搜索"""
         import serpapi
 
+        api_key = get_env_value("SERPAPI_API_KEY", code_root=CODE_ROOT)
         search = serpapi.GoogleSearch({
             "q": query,
-            "api_key": os.getenv("SERPAPI_API_KEY"),
+            "api_key": api_key,
             "num": 3
         })
 

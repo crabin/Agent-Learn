@@ -11,7 +11,25 @@
 3. 必须使用GAIA官方系统提示词
 """
 
-import os
+from pathlib import Path
+import sys
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import load_shared_dotenv
+
+load_shared_dotenv(code_root=CODE_ROOT)
+
 from hello_agents import SimpleAgent, HelloAgentsLLM
 from hello_agents.tools import GAIAEvaluationTool
 
@@ -23,7 +41,7 @@ If you are asked for a string, don't use articles, neither abbreviations (e.g. f
 If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string."""
 
 # 1. 设置HuggingFace Token（如果还没设置）
-# os.environ["HF_TOKEN"] = "your_huggingface_token_here"
+# 请在运行前通过系统环境变量设置 HF_TOKEN，例如：export HF_TOKEN=your_huggingface_token_here
 
 # 2. 创建智能体（必须使用GAIA官方系统提示词）
 llm = HelloAgentsLLM()

@@ -1,8 +1,23 @@
-import os
+from pathlib import Path
+import sys
 from enum import Enum
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_env_value
 
 
 class SearchAPI(Enum):
@@ -89,35 +104,41 @@ class Configuration(BaseModel):
 
     @classmethod
     def from_env(cls, overrides: Optional[dict[str, Any]] = None) -> "Configuration":
-        """Create a configuration object using environment variables and overrides."""
+        """Create a configuration object using shared env values and overrides."""
 
         raw_values: dict[str, Any] = {}
-
-        # Load values from environment variables based on field names
-        for field_name in cls.model_fields.keys():
-            env_key = field_name.upper()
-            if env_key in os.environ:
-                raw_values[field_name] = os.environ[env_key]
-
-        # Additional mappings for explicit env names
-        env_aliases = {
-            "local_llm": os.getenv("LOCAL_LLM"),
-            "llm_provider": os.getenv("LLM_PROVIDER"),
-            "llm_api_key": os.getenv("LLM_API_KEY"),
-            "llm_model_id": os.getenv("LLM_MODEL_ID"),
-            "llm_base_url": os.getenv("LLM_BASE_URL"),
-            "lmstudio_base_url": os.getenv("LMSTUDIO_BASE_URL"),
-            "ollama_base_url": os.getenv("OLLAMA_BASE_URL"),
-            "max_web_research_loops": os.getenv("MAX_WEB_RESEARCH_LOOPS"),
-            "fetch_full_page": os.getenv("FETCH_FULL_PAGE"),
-            "strip_thinking_tokens": os.getenv("STRIP_THINKING_TOKENS"),
-            "use_tool_calling": os.getenv("USE_TOOL_CALLING"),
-            "search_api": os.getenv("SEARCH_API"),
-            "enable_notes": os.getenv("ENABLE_NOTES"),
-            "notes_workspace": os.getenv("NOTES_WORKSPACE"),
+        shared_values = {
+            "local_llm": get_env_value("LOCAL_LLM", default=None, code_root=CODE_ROOT),
+            "llm_provider": get_env_value("LLM_PROVIDER", default=None, code_root=CODE_ROOT),
+            "llm_api_key": get_env_value("API_KEY", default=None, code_root=CODE_ROOT),
+            "llm_model_id": get_env_value("MODEL_ID", default=None, code_root=CODE_ROOT),
+            "llm_base_url": get_env_value("BASE_URL", default=None, code_root=CODE_ROOT),
+            "lmstudio_base_url": get_env_value(
+                "LMSTUDIO_BASE_URL", default=None, code_root=CODE_ROOT
+            ),
+            "ollama_base_url": get_env_value(
+                "OLLAMA_BASE_URL", default=None, code_root=CODE_ROOT
+            ),
+            "max_web_research_loops": get_env_value(
+                "MAX_WEB_RESEARCH_LOOPS", default=None, code_root=CODE_ROOT
+            ),
+            "fetch_full_page": get_env_value(
+                "FETCH_FULL_PAGE", default=None, code_root=CODE_ROOT
+            ),
+            "strip_thinking_tokens": get_env_value(
+                "STRIP_THINKING_TOKENS", default=None, code_root=CODE_ROOT
+            ),
+            "use_tool_calling": get_env_value(
+                "USE_TOOL_CALLING", default=None, code_root=CODE_ROOT
+            ),
+            "search_api": get_env_value("SEARCH_API", default=None, code_root=CODE_ROOT),
+            "enable_notes": get_env_value("ENABLE_NOTES", default=None, code_root=CODE_ROOT),
+            "notes_workspace": get_env_value(
+                "NOTES_WORKSPACE", default=None, code_root=CODE_ROOT
+            ),
         }
 
-        for key, value in env_aliases.items():
+        for key, value in shared_values.items():
             if value is not None:
                 raw_values.setdefault(key, value)
 
@@ -140,4 +161,3 @@ class Configuration(BaseModel):
         """Best-effort resolution of the model identifier to use."""
 
         return self.llm_model_id or self.local_llm
-

@@ -1,15 +1,30 @@
-from colorama import Fore
-from camel.societies import RolePlaying
-from camel.utils import print_text_animated
-from camel.models import ModelFactory
-from camel.types import ModelPlatformType
-from dotenv import load_dotenv
-import os
+from pathlib import Path
+import sys
 
-load_dotenv()
-LLM_API_KEY = os.getenv("LLM_API_KEY")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL")
-LLM_MODEL = os.getenv("LLM_MODEL")
+from colorama import Fore
+from camel.models import ModelFactory
+from camel.societies import RolePlaying
+from camel.types import ModelPlatformType
+from camel.utils import print_text_animated
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_llm_config
+
+LLM_CONFIG = get_llm_config(code_root=CODE_ROOT)
+LLM_API_KEY = LLM_CONFIG.api_key
+LLM_BASE_URL = LLM_CONFIG.base_url
+LLM_MODEL = LLM_CONFIG.model_id
 
 #创建模型,在这里以Qwen为例,调用的百炼大模型平台API
 model = ModelFactory.create(

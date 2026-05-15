@@ -10,12 +10,31 @@ CodebaseMaintainer 三天工作流演示
 """
 
 import os
+from pathlib import Path
+import sys
+
+
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_env_value, load_shared_dotenv
+
+load_shared_dotenv(code_root=CODE_ROOT)
+
+hf_endpoint = get_env_value("HF_ENDPOINT", default="https://hf-mirror.com", code_root=CODE_ROOT)
+os.environ.setdefault("HF_ENDPOINT", hf_endpoint)
 # 配置嵌入模型（三选一）
 # 方案一：TF-IDF（最简单，无需额外依赖）
 os.environ['EMBED_MODEL_TYPE'] = 'tfidf'
 os.environ['EMBED_MODEL_NAME'] = ''  # 重要：必须清空，否则会传递不兼容的参数
-from dotenv import load_dotenv
-load_dotenv()
 # 方案二：本地Transformer（需要: pip install sentence-transformers 和 HF token）
 # os.environ['EMBED_MODEL_TYPE'] = 'local'
 # os.environ['EMBED_MODEL_NAME'] = 'sentence-transformers/all-MiniLM-L6-v2'
@@ -31,8 +50,7 @@ import json
 import time
 
 # 导入 CodebaseMaintainer
-import sys
-sys.path.append('.')
+sys.path.append(str(Path(__file__).resolve().parent))
 from codebase_maintainer import CodebaseMaintainer
 
 

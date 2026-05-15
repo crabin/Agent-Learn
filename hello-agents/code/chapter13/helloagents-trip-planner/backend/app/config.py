@@ -1,62 +1,67 @@
 """配置管理模块"""
 
-import os
 from pathlib import Path
+import sys
 from typing import List
+
 from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
 
-# 加载环境变量
-# 首先尝试加载当前目录的.env
-load_dotenv()
 
-# 然后尝试加载HelloAgents的.env(如果存在)
-helloagents_env = Path(__file__).parent.parent.parent.parent / "HelloAgents" / ".env"
-if helloagents_env.exists():
-    load_dotenv(helloagents_env, override=False)  # 不覆盖已有的环境变量
+def _find_code_root(start: Path) -> Path:
+    for candidate in [start, *start.parents]:
+        if candidate.name == "code" and candidate.parent.name == "hello-agents":
+            return candidate
+    raise ValueError("Unable to locate hello-agents/code root")
+
+
+CODE_ROOT = _find_code_root(Path(__file__).resolve().parent)
+if str(CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(CODE_ROOT))
+
+from shared.env_config import get_env_value
 
 
 class Settings(BaseSettings):
     """应用配置"""
 
-    # 应用基本配置
     app_name: str = "HelloAgents智能旅行助手"
     app_version: str = "1.0.0"
     debug: bool = False
 
-    # 服务器配置
     host: str = "0.0.0.0"
     port: int = 8000
 
-    # CORS配置 - 使用字符串,在代码中分割
-    cors_origins: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:3000,"
+        "http://127.0.0.1:5173,http://127.0.0.1:3000"
+    )
 
-    # 高德地图API配置
-    amap_api_key: str = ""
+    amap_api_key: str = get_env_value("AMAP_API_KEY", default="", code_root=CODE_ROOT) or ""
+    unsplash_access_key: str = (
+        get_env_value("UNSPLASH_ACCESS_KEY", default="", code_root=CODE_ROOT) or ""
+    )
+    unsplash_secret_key: str = (
+        get_env_value("UNSPLASH_SECRET_KEY", default="", code_root=CODE_ROOT) or ""
+    )
 
-    # Unsplash API配置
-    unsplash_access_key: str = ""
-    unsplash_secret_key: str = ""
+    openai_api_key: str = get_env_value("API_KEY", default="", code_root=CODE_ROOT) or ""
+    openai_base_url: str = (
+        get_env_value("BASE_URL", default="https://api.openai.com/v1", code_root=CODE_ROOT)
+        or "https://api.openai.com/v1"
+    )
+    openai_model: str = get_env_value("MODEL_ID", default="gpt-4", code_root=CODE_ROOT) or "gpt-4"
 
-    # LLM配置 (从环境变量读取,由HelloAgents管理)
-    openai_api_key: str = ""
-    openai_base_url: str = "https://api.openai.com/v1"
-    openai_model: str = "gpt-4"
-
-    # 日志配置
     log_level: str = "INFO"
 
     class Config:
-        env_file = ".env"
         case_sensitive = False
-        extra = "ignore"  # 忽略额外的环境变量
+        extra = "ignore"
 
     def get_cors_origins_list(self) -> List[str]:
-        """获取CORS origins列表"""
-        return [origin.strip() for origin in self.cors_origins.split(',')]
+        """获取 CORS origins 列表"""
+        return [origin.strip() for origin in self.cors_origins.split(",")]
 
 
-# 创建全局配置实例
 settings = Settings()
 
 
@@ -65,8 +70,7 @@ def get_settings() -> Settings:
     return settings
 
 
-# 验证必要的配置
-def validate_config():
+def validate_config() -> bool:
     """验证配置是否完整"""
     errors = []
     warnings = []
@@ -74,10 +78,8 @@ def validate_config():
     if not settings.amap_api_key:
         errors.append("AMAP_API_KEY未配置")
 
-    # HelloAgentsLLM会自动从LLM_API_KEY读取,不强制要求OPENAI_API_KEY
-    llm_api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
-    if not llm_api_key:
-        warnings.append("LLM_API_KEY或OPENAI_API_KEY未配置,LLM功能可能无法使用")
+    if not settings.openai_api_key:
+        warnings.append("共享 .env 中的 API_KEY 未配置,LLM功能可能无法使用")
 
     if errors:
         error_msg = "配置错误:\n" + "\n".join(f"  - {e}" for e in errors)
@@ -85,27 +87,19 @@ def validate_config():
 
     if warnings:
         print("\n⚠️  配置警告:")
-        for w in warnings:
-            print(f"  - {w}")
+        for warning in warnings:
+            print(f"  - {warning}")
 
     return True
 
 
-# 打印配置信息(用于调试)
-def print_config():
+def print_config() -> None:
     """打印当前配置(隐藏敏感信息)"""
     print(f"应用名称: {settings.app_name}")
     print(f"版本: {settings.app_version}")
     print(f"服务器: {settings.host}:{settings.port}")
     print(f"高德地图API Key: {'已配置' if settings.amap_api_key else '未配置'}")
-
-    # 检查LLM配置
-    llm_api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
-    llm_base_url = os.getenv("LLM_BASE_URL") or settings.openai_base_url
-    llm_model = os.getenv("LLM_MODEL_ID") or settings.openai_model
-
-    print(f"LLM API Key: {'已配置' if llm_api_key else '未配置'}")
-    print(f"LLM Base URL: {llm_base_url}")
-    print(f"LLM Model: {llm_model}")
+    print(f"LLM API Key: {'已配置' if settings.openai_api_key else '未配置'}")
+    print(f"LLM Base URL: {settings.openai_base_url}")
+    print(f"LLM Model: {settings.openai_model}")
     print(f"日志级别: {settings.log_level}")
-
