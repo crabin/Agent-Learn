@@ -16,8 +16,62 @@ python -m AgentEvaluation.quick_test
 
 ## BFCL 风格评估
 
+项目内已经提供本地 `hello_agents` 兼容包，因此可以直接使用文档里的导入方式：
+
 ```python
-from AgentEvaluation import BFCLDataset, BFCLEvaluator
+from hello_agents import HelloAgentsLLM, SimpleAgent
+from hello_agents.tools import BFCLEvaluationTool
+
+llm = HelloAgentsLLM()
+agent = SimpleAgent(name="TestAgent", llm=llm)
+
+bfcl_tool = BFCLEvaluationTool()
+results = bfcl_tool.run(
+    agent=agent,
+    category="simple_python",
+    max_samples=5,
+    data=[
+        {
+            "id": "simple_python_0",
+            "category": "simple_python",
+            "question": "What's the weather like in Beijing in celsius?",
+            "functions": [
+                {
+                    "name": "get_weather",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "location": {"type": "string"},
+                            "unit": {"type": "string"},
+                        },
+                        "required": ["location", "unit"],
+                    },
+                }
+            ],
+            "ground_truth": [
+                {"name": "get_weather", "arguments": {"location": "Beijing", "unit": "celsius"}}
+            ],
+        }
+    ],
+)
+
+print(f"准确率: {results['overall_accuracy']:.2%}")
+print(f"正确数: {results['correct_samples']}/{results['total_samples']}")
+```
+
+命令行方式：
+
+```bash
+python AgentEvaluation/04_run_bfcl_evaluation.py --category simple_python --samples 5
+```
+
+自定义 Dataset + Evaluator：
+
+```python
+from hello_agents import HelloAgentsLLM, SimpleAgent
+from hello_agents.evaluation import BFCLDataset, BFCLEvaluator
+
+agent = SimpleAgent(name="TestAgent", llm=HelloAgentsLLM())
 
 dataset = BFCLDataset(data=[
     {
@@ -33,7 +87,7 @@ dataset = BFCLDataset(data=[
 results = BFCLEvaluator(dataset).evaluate(agent, max_samples=10)
 ```
 
-`agent` 只需要实现 `run(prompt: str) -> str`。预测结果可以是 JSON、JSON 代码块，或 Python 函数调用文本。
+`SimpleAgent` 只需要满足 `run(prompt: str) -> str` 协议。`HelloAgentsLLM` 在没有 `OPENAI_API_KEY` 时会走本地规则 fallback，方便离线验证；配置了 OpenAI 兼容环境变量后会调用真实模型。
 
 ## GAIA 风格评估
 

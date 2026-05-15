@@ -1,0 +1,14 @@
+[
+  {
+    "id": "simple_python_0",
+    "result": [
+      {
+        "name": "get_weather",
+        "arguments": {
+          "location": "Beijing",
+          "unit": "celsius"
+        }
+      }
+    ]
+  }
+]
