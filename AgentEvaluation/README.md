@@ -75,15 +75,23 @@ win_results = WinRateEvaluator(judge_agent).evaluate(
 ```python
 from AgentEvaluation import (
     agent_validation_plan,
+    dataset_validation_matrix,
     get_dataset_config,
+    get_validation_method_config,
     list_dataset_configs,
+    list_validation_method_configs,
     validate_dataset_config,
+    validation_methods_for_dataset,
 )
 
 print([config.key for config in list_dataset_configs()])
 print(get_dataset_config("gaia"))
+print(get_validation_method_config("llm_judge"))
+print([method.key for method in validation_methods_for_dataset("aime25")])
+print([method.key for method in list_validation_method_configs()])
 print(validate_dataset_config("gaia", project_root="."))
 print(agent_validation_plan())
+print(dataset_validation_matrix())
 ```
 
 当前注册项：
@@ -100,3 +108,12 @@ print(agent_validation_plan())
 - `aime25`
 
 其中 `bfcl`、`gaia`、`aime_1983_2025`、`aime25` 已映射到本项目的轻量加载器/评估器；其他环境型基准保留官方来源、子集、环境变量和本地路径提示，方便后续接入官方 harness。
+
+当前注册的验证方法：
+
+- `ast_match`：BFCL 工具调用匹配。
+- `quasi_exact_match`：GAIA 最终答案匹配。
+- `llm_judge`：LLM 多维评分。
+- `win_rate`：生成样本与参考样本成对对比。
+- `human_verification`：人工验证配置占位，适合最终质量把关。
+- `official_harness`：官方评估环境配置占位。

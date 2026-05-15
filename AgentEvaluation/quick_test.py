@@ -12,7 +12,9 @@ from AgentEvaluation import (
     LLMJudgeEvaluator,
     WinRateEvaluator,
     agent_validation_plan,
+    dataset_validation_matrix,
     list_dataset_configs,
+    list_validation_method_configs,
 )
 
 
@@ -101,7 +103,9 @@ def main() -> None:
 
     configs = list_dataset_configs()
     print("数据集配置数量:", len(configs))
+    print("验证方法配置数量:", len(list_validation_method_configs()))
     print("Agent 验证计划:", json.dumps(agent_validation_plan(), ensure_ascii=False, indent=2))
+    print("数据集验证方法矩阵:", json.dumps(dataset_validation_matrix(), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

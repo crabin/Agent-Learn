@@ -17,14 +17,20 @@ from .data_generation import (
 )
 from .dataset_config import (
     DATASET_CONFIGS,
+    VALIDATION_METHOD_CONFIGS,
     DatasetConfig,
     DatasetValidation,
+    ValidationMethodConfig,
     agent_validation_plan,
+    dataset_validation_matrix,
     export_dataset_configs,
     get_dataset_config,
+    get_validation_method_config,
     list_dataset_configs,
+    list_validation_method_configs,
     validate_all_dataset_configs,
     validate_dataset_config,
+    validation_methods_for_dataset,
 )
 from .gaia import GAIA_SYSTEM_PROMPT, GAIADataset, GAIAEvaluationTool, GAIAEvaluator, QuasiExactMatcher
 
@@ -44,12 +50,18 @@ __all__ = [
     "LLMJudgeEvaluator",
     "LLMJudgeTool",
     "QuasiExactMatcher",
+    "VALIDATION_METHOD_CONFIGS",
+    "ValidationMethodConfig",
     "WinRateEvaluator",
     "WinRateTool",
     "agent_validation_plan",
+    "dataset_validation_matrix",
     "export_dataset_configs",
     "get_dataset_config",
+    "get_validation_method_config",
     "list_dataset_configs",
+    "list_validation_method_configs",
     "validate_all_dataset_configs",
     "validate_dataset_config",
+    "validation_methods_for_dataset",
 ]
