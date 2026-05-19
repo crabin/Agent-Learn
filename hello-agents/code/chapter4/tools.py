@@ -2,7 +2,8 @@ from pathlib import Path
 import sys
 from typing import Any, Dict
 
-from serpapi import SerpApiClient
+# from serpapi import SerpApiClient
+from serpapi import GoogleSearch
 
 
 def _find_code_root(start: Path) -> Path:
@@ -38,7 +39,7 @@ def search(query: str) -> str:
             "hl": "zh-cn",
         }
 
-        client = SerpApiClient(params)
+        client = GoogleSearch(params)
         results = client.get_dict()
 
         if "answer_box_list" in results:
